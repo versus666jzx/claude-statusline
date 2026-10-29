@@ -52,8 +52,8 @@
 1. Скачайте скрипты в `~/.claude/`:
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/HardWorkingStation/claude-statusline/main/statusline.js -o ~/.claude/statusline.js
-   curl -fsSL https://raw.githubusercontent.com/HardWorkingStation/claude-statusline/main/subagent-statusline.js -o ~/.claude/subagent-statusline.js
+   curl -fsSL https://raw.githubusercontent.com/versus666jzx/claude-statusline/main/statusline.js -o ~/.claude/statusline.js
+   curl -fsSL https://raw.githubusercontent.com/versus666jzx/claude-statusline/main/subagent-statusline.js -o ~/.claude/subagent-statusline.js
    ```
 
 2. Добавьте в `~/.claude/settings.json`, не трогая остальные ключи:
@@ -81,7 +81,7 @@
 Вставьте в Claude Code:
 
 ```text
-Установи статуслайн из https://github.com/HardWorkingStation/claude-statusline:
+Установи статуслайн из https://github.com/versus666jzx/claude-statusline:
 1. Скачай statusline.js и subagent-statusline.js в ~/.claude/. Если такие файлы уже есть, сначала сохрани их копии с суффиксом .bak.
 2. В ~/.claude/settings.json добавь или замени ключи statusLine и subagentStatusLine так, как указано в README репозитория. Остальные настройки не трогай.
 3. Проверь скрипт: передай в node ~/.claude/statusline.js тестовый JSON с полями model.display_name и context_window.used_percentage и покажи вывод.
