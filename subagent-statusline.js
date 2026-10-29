@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-// Subagent rows: [status] title · agentType · model·effort · tokens ctx% · elapsed · activity
+// Subagent rows: [status] title · agentType · 🌳worktree · model·effort · tokens ctx% · elapsed · activity
 // Metric columns are aligned across rows; the title takes what width is left.
-// Input: {columns, tasks: [{id, name, type, agentType, status, description, label,
+// Input: {cwd, columns, tasks: [{id, name, type, agentType, status, description, label,
 // startTime, model, effort, contextWindowSize, tokenCount, tokenSamples, cwd}]}.
 // Output: one {"id", "content"} JSON line per row.
+
+const path = require('path');
 
 const RESET = '\x1b[0m';
 const DIM = '\x1b[2m';
@@ -19,6 +21,7 @@ const MIN_TITLE = 12;
 const SPARK_TICKS = 8;
 const SPARK = '▁▂▃▄▅▆▇█';
 const AGENT_MAX = 16;
+const TREE_MAX = 16;
 // Each agent type hashes to a stable color, so same-type rows read as a group.
 const AGENT_COLORS = [
   '\x1b[38;2;189;147;249m', '\x1b[38;2;255;121;198m', '\x1b[38;2;255;184;108m',
@@ -121,8 +124,14 @@ function activity(samples) {
   }).join('');
 }
 
-function cells(t, now) {
+// A subagent gets its own cwd only when it runs in its own directory, such as an
+// isolated worktree; otherwise it shares the session's.
+const ownDir = (cwd, sessionCwd) =>
+  cwd && sessionCwd && path.resolve(cwd) !== path.resolve(sessionCwd) ? path.basename(cwd) : '';
+
+function cells(t, now, sessionCwd) {
   const [iconColor, icon] = STATUS_ICONS[t.status] || [];
+  const tree = ownDir(t.cwd, sessionCwd);
   // description is the task as spawned; label follows the agent's current step.
   // type is always local_agent; agentType (v2.1.293+) names the actual subagent.
   const title = t.name || t.description || t.label || t.agentType || 'agent';
@@ -140,6 +149,7 @@ function cells(t, now) {
     titleHead: title,
     agent,
     agentColor: agent ? agentColor(t.agentType) : '',
+    tree: tree ? '🌳' + truncate(tree, TREE_MAX) : '',
     model: [shortModel(t.model), effort].filter(Boolean).join('·'),
     tokens: Number.isFinite(tokens) && tokens > 0 ? fmt(tokens) : '',
     pct: pct == null ? '' : pct + '%',
@@ -152,19 +162,20 @@ function cells(t, now) {
 // Metric columns, in display order; `drop` is the degrade order when narrow.
 const COLUMNS = [
   { key: 'agent', align: 'left', render: (c, s) => color(c.agentColor, s) },
+  { key: 'tree', align: 'left', render: (c, s) => s },
   { key: 'model', align: 'left', render: (c, s) => color(DIM_CYAN, s) },
   { key: 'usage', align: 'right', text: (c) => [c.tokens, c.pct].filter(Boolean).join(' '),
     render: (c) => [color(DIM, c.tokens), color(c.pctColor, c.pct)].filter(Boolean).join(' ') },
   { key: 'elapsed', align: 'right', render: (c, s) => color(DIM, s) },
   { key: 'spark', align: 'left', render: (c, s) => color(CYAN, s) },
 ];
-const DROP_ORDER = ['spark', 'elapsed', 'model', 'agent'];
+const DROP_ORDER = ['spark', 'elapsed', 'model', 'tree', 'agent'];
 
 function render(data) {
   const tasks = Array.isArray(data.tasks) ? data.tasks : [];
   const maxWidth = Number(data.columns) || (Number(process.env.COLUMNS) - 6) || 100;
   const now = Date.now();
-  const rows = tasks.map((t) => ({ id: t.id, c: cells(t, now) }));
+  const rows = tasks.map((t) => ({ id: t.id, c: cells(t, now, data.cwd) }));
   const text = (col, c) => (col.text ? col.text(c) : c[col.key]);
 
   let cols = COLUMNS.slice();

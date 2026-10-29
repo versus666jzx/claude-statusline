@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Statusline: ▓░ bar | model | ⚡effort | 🌳worktree | prompt cache | rate limits
+// Statusline: ▓░ bar | model | ⚡effort·fast | 🌳worktree | prompt cache | rate limits
 // Fits into $COLUMNS by dropping low-priority details first (see DEGRADE).
 
 const path = require('path');
@@ -217,12 +217,14 @@ const DEGRADE = [
 
 function build(data, o) {
   const rl = data.rate_limits || {};
-  const effort = data.effort?.level;
+  const effort = o.effort ? data.effort?.level : null;
+  // Fast mode outlives the effort level when narrowing: it changes what a request costs.
+  const fast = data.fast_mode === true ? color(ORANGE, 'fast') : null;
   const worktree = data.workspace?.git_worktree;
   return [
     safe(() => contextSeg(data, o)),
     safe(() => modelSeg(data, o)),
-    o.effort && effort ? `⚡${effort}` : null,
+    effort || fast ? '⚡' + [effort, fast].filter(Boolean).join('·') : null,
     o.worktree && worktree ? `🌳${path.basename(worktree)}` : null,
     safe(() => cacheSeg(data, o)),
     safe(() => rateLimitSeg('5h', rl.five_hour, false, o.reset5h)),
